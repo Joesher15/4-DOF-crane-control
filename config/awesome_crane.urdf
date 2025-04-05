@@ -1,0 +1,82 @@
+<robot name="crane">
+    <!-- Base link -->
+    <link name="base_link">
+        <visual>
+            <geometry>
+                <cylinder radius="0.15" length="0.2" />
+            </geometry>
+        </visual>
+    </link>
+
+    <!-- Swing rotation joint -->
+    <joint name="swing_joint" type="revolute">
+        <parent link="base_link"/>
+        <child link="column"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <axis xyz="0 0 1"/>
+        <limit lower="-3.14" upper="3.14" effort="100" velocity="1.0"/>
+    </joint>
+
+    <!-- Column -->
+    <link name="column">
+        <visual>
+            <origin xyz="0 0 1" rpy="0 0 0 " />
+            <geometry>
+                <cylinder radius="0.15" length="2.0"/>
+            </geometry>
+        </visual>
+    </link>
+
+    <!-- Linear Lift joint -->
+    <joint name="lift_joint" type="prismatic">
+        <parent link="column"/>
+        <child link="upper_arm"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <axis xyz="0 0 1"/>
+        <limit lower="0" upper="1.5" effort="100" velocity="0.5"/>
+    </joint>
+
+    <!-- upper arm link -->
+    <link name="upper_arm">
+        <visual>
+        <origin xyz = "0.25 0 0" rpy="0 0 0 " />
+            <geometry>
+                <box size="0.5 0.25 0.25"/>
+            </geometry>
+        </visual>
+    </link>
+
+    <joint name="elbow_joint" type="revolute">
+        <parent link="upper_arm"/>
+        <child link="lower_arm"/>
+        <origin xyz="0.5 0 0" rpy="0 0 0"/>
+        <axis xyz="0 0 1"/>
+        <limit lower="-1.57" upper="1.57" effort="100" velocity="1.0"/>
+    </joint>
+    
+    <link name="lower_arm">
+        <visual>
+        <origin xyz="0.25 0 0" rpy="0 0 0" />
+        <geometry>
+            <box size="0.5 0.25 0.25"/>
+        </geometry>
+        </visual>
+    </link>
+
+    <joint name="wrist_joint" type="revolute">
+        <parent link="lower_arm"/>
+        <child link="wrist_extension"/>
+        <origin xyz="0.5 0 -1" rpy="0 0 0"/>
+        <axis xyz="0 0 1"/>
+        <limit lower="-1.57" upper="1.57" effort="100" velocity="1.0"/>
+    </joint>
+    
+    <link name="wrist_extension">
+        <visual>
+        <origin xyz="0 0 -0.5" rpy="0 0 0" />
+        <geometry>
+            <cylinder radius="0.25" length="1" />
+        </geometry>
+        </visual>
+    </link>
+</robot>
