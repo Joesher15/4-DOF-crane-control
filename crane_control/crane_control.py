@@ -2,8 +2,6 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 from ikpy.chain import Chain
 from ikpy.link import URDFLink
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
 import xml.etree.ElementTree as ET
 
 np.set_printoptions(precision=3, suppress=True)
@@ -28,7 +26,7 @@ class Joint:
 
 class Crane:
     def __init__(self):
-        self.joints = None
+        self.joints = []
 
     def initialise_crane_model(self, joints):
         for joint in joints:
@@ -71,7 +69,6 @@ class CraneControl():
 
         self.initialise_crane()
 
-
         self.crane_model = Crane()
         joints = []
         for i, joint in enumerate(self.crane.links):
@@ -83,6 +80,8 @@ class CraneControl():
         self.origin_shift_transformation = np.eye(4, 4)
 
         self.shift_origin(np.array([0, 0, 0, 0]))
+
+        self.goto_point(np.array([2.5, 0.0, 1.0]))
 
     def load_velocity_limits(self):
         # Parse the XML data
@@ -100,7 +99,7 @@ class CraneControl():
         return velocity_limits
 
     def augment_joint_angles(self, joint_angles: list):
-        return np.array([0, np.deg2rad(joint_angles[0]), joint_angles[1], np.deg2rad(joint_angles[2]), np.deg2rad(joint_angles[3])])
+        return [0, np.deg2rad(joint_angles[0]), joint_angles[1], np.deg2rad(joint_angles[2]), np.deg2rad(joint_angles[3]), 0]
     
     def forward_kinematics(self, joint_angles):
         print("==================")
@@ -108,9 +107,9 @@ class CraneControl():
         print("Forward Kinematics")
         print(f"Joint angles: {joint_angles}")
 
-        # ikpy shenanigans
-        joint_angles.insert(0, 0)
-        joint_angles.append(0)
+        # # ikpy shenanigans
+        # joint_angles.insert(0, 0)
+        # joint_angles.append(0)
 
         F = self.crane.forward_kinematics(joint_angles)
 
@@ -124,7 +123,6 @@ class CraneControl():
         return ee_pose, ee_orientation
     
     def initialise_crane(self):
-
         joint_angles = self.augment_joint_angles([0, 0, 0, 0])
         self.current_ee_position, self.current_ee_orientation = self.forward_kinematics(joint_angles)
         self.current_joint_positions = joint_angles
@@ -156,7 +154,7 @@ class CraneControl():
         print(f"translation: {self.crane.links[1].origin_translation}")
         print(f"orientation: {np.rad2deg(self.crane.links[1].origin_orientation)}")
 
-    def goto_point(self, target_ee_pos):
+    def goto_point(self, target_ee_pos: np.ndarray):
 
         print("==================")
         # Compute inverse kinematics
@@ -181,7 +179,16 @@ class CraneControl():
         # cannot reach instantaneously, add a slow movement to it (controller?)
         self.crane_model.set_target(final_joint_positions[1:-1])
 
-        self.crane_model.update(1.0)
+        self.crane_model.update(100.0)
 
         updated_joint_angles = self.crane_model.get_positions()
         self.current_joint_positions = self.augment_joint_angles(updated_joint_angles)
+
+        print(self.forward_kinematics(self.current_joint_positions))
+
+
+def main():
+    crane_control = CraneControl()
+
+if __name__ == "__main__":
+    main()
