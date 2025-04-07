@@ -3,6 +3,9 @@ from scipy.spatial.transform import Rotation
 from ikpy.chain import Chain
 from ikpy.link import URDFLink
 import xml.etree.ElementTree as ET
+import asyncio
+import websockets
+import json
 
 np.set_printoptions(precision=3, suppress=True)
 
@@ -42,19 +45,14 @@ class Crane:
 
     def get_positions(self):
         return [joint.position for joint in self.joints]
-    
-    # def run_sim(self):
-    #     # Simulation parameters
-    #     dt = 1.0  # Time step
-    #     simulation_time = 10.0  # Total simulation time
 
-    #     # Run simulation
-    #     time = 0.0
-    #     while time < simulation_time:
-    #         self.update(dt)
-    #         positions = self.get_positions()
-    #         print(f"Time: {time:.2f}, Positions: {positions}")
-    #         time += dt
+    async def publish_state(self, websocket):
+        while True:
+            positions = self.get_positions()
+            await websocket.send(json.dumps(positions))
+            print("Sent positions")
+            await asyncio.sleep(2)  # Adjust the frequency as needed
+            
     
 class CraneControl():
     def __init__(self):
@@ -81,8 +79,6 @@ class CraneControl():
 
         self.shift_origin(np.array([0, 0, 0, 0]))
 
-        self.goto_point(np.array([2.5, 0.0, 1.0]))
-
     def load_velocity_limits(self):
         # Parse the XML data
         robot = ET.parse(self.urdf_file)
@@ -102,23 +98,18 @@ class CraneControl():
         return [0, np.deg2rad(joint_angles[0]), joint_angles[1], np.deg2rad(joint_angles[2]), np.deg2rad(joint_angles[3]), 0]
     
     def forward_kinematics(self, joint_angles):
-        print("==================")
         # Compute forward kinematics
-        print("Forward Kinematics")
-        print(f"Joint angles: {joint_angles}")
-
-        # # ikpy shenanigans
-        # joint_angles.insert(0, 0)
-        # joint_angles.append(0)
+        # print("Forward Kinematics")
+        # print(f"Joint angles: {joint_angles}")
 
         F = self.crane.forward_kinematics(joint_angles)
 
-        print(f"End-Effector position: {F[:3, 3]}")
+        # print(f"End-Effector position: {F[:3, 3]}")
         ee_pose = F[:3, 3]
         rot_matrix = F[:3, :3]
         r = Rotation.from_matrix(rot_matrix)
         ee_orientation = r.as_euler('xyz')
-        print(f"End-Effector orientation: {ee_orientation}")
+        # print(f"End-Effector orientation: {ee_orientation}")
 
         return ee_pose, ee_orientation
     
@@ -156,9 +147,9 @@ class CraneControl():
 
     def goto_point(self, target_ee_pos: np.ndarray):
 
-        print("==================")
         # Compute inverse kinematics
-        print("Inverse Kinematics")
+        print("==================")
+        print("Goto point")
 
         print(f"Start End-Effector position: {self.current_ee_position}")
         print(f"Start End-Effector orientation: {self.current_ee_orientation}")
@@ -179,16 +170,25 @@ class CraneControl():
         # cannot reach instantaneously, add a slow movement to it (controller?)
         self.crane_model.set_target(final_joint_positions[1:-1])
 
-        self.crane_model.update(100.0)
+        # updated_joint_angles = self.crane_model.get_positions()
+        # self.current_joint_positions = self.augment_joint_angles(updated_joint_angles)
 
-        updated_joint_angles = self.crane_model.get_positions()
-        self.current_joint_positions = self.augment_joint_angles(updated_joint_angles)
-
-        print(self.forward_kinematics(self.current_joint_positions))
+        # print(f"actual ee pose: {self.forward_kinematics(self.current_joint_positions)}")
 
 
-def main():
+async def main():
+    # Initialize crane model and set targets as needed
     crane_control = CraneControl()
+    crane_control.goto_point(np.array([2.5, 0.0, 1.0]))
+
+    async def update_crane():
+        while True:
+            crane_control.crane_model.update(1.0)
+            await asyncio.sleep(1.0)
+
+    async with websockets.serve(crane_control.crane_model.publish_state, "192.168.66.128", 8765):
+        await update_crane()  # Run forever
+
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
