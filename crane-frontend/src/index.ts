@@ -73,6 +73,17 @@ wall3.rotation.y = Math.PI / 2;
 wall3.rotation.z = Math.PI / 2;
 scene.add(wall3);
 
+
+// Create and position the first axes helper
+const worldAxis = new THREE.AxesHelper(5);
+worldAxis.position.set(0.0, 0.0, 0.0);
+scene.add(worldAxis);
+
+// Create and position the second axes helper
+const baseLinkAxis = new THREE.AxesHelper(5);
+baseLinkAxis.position.set(0.0, 0.0, 0.0);
+scene.add(baseLinkAxis);
+
 // Load the URDF file
 const manager = new THREE.LoadingManager();
 const urdf_loader = new URDFLoader(manager);
@@ -142,12 +153,13 @@ socket.onmessage = (event) => {
                 if (link.isURDFLink){
                     // console.info(link.name)
                     if (link.name === 'base_link'){
-                        console.info(link.position);
+                        // console.info(link.position);
                         const vec = new THREE.Vector3;
-                        console.info(origin_shift);
+                        // console.info(origin_shift);
 
                         // Set the world coordinates you want to move the parent cube to
                         const targetWorldPosition = new THREE.Vector3(origin_shift[0], origin_shift[1], origin_shift[2]);
+                        baseLinkAxis.position.copy(targetWorldPosition)
 
                         // Move the parent cube to the target world coordinates
                         link.position.copy(targetWorldPosition);

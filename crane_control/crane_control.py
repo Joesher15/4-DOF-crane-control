@@ -14,9 +14,6 @@ def separate_numbers(input_string):
     numbers = re.findall(r'-?\d+\.\d+|-?\d+', input_string)
     return [float(num) for num in numbers]
 
-def wrap_angle_radians(angle):
-    return (angle + np.pi) % (2 * np.pi) - np.pi
-
 class Joint:
     def __init__(self, joint_type, initial_position, velocity_limit):
         self.joint_type = joint_type  # 'revolute' or 'prismatic'
@@ -30,7 +27,7 @@ class Joint:
     def update_position(self, dt):
         if self.target is not None:
             if self.joint_type == 'revolute':
-                error = wrap_angle_radians(self.target - self.position)
+                error = self.target - self.position
                 # print(error)
                 velocity = np.clip(error / dt, -self.velocity_limit, self.velocity_limit)
                 self.position += velocity * dt
