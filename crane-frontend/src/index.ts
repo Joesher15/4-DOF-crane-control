@@ -101,6 +101,7 @@ const receivedEEPosition = document.getElementById('eePosition');
 const receivedeeCommandStatus = document.getElementById('eeCommandStatus');
 const receivedrobotMotionStatus = document.getElementById('robotMotionStatus');
 const receivedjointCommandStatus = document.getElementById('jointCommandStatus');
+const receivedoriginShift = document.getElementById('originData');
 socket.onmessage = (event) => {
     const data = JSON.parse(event.data);
     console.info(data);
@@ -120,6 +121,14 @@ socket.onmessage = (event) => {
         if (receivedrobotMotionStatus){
             receivedrobotMotionStatus.textContent = `
             status: ${robot_motion_status}`
+        }
+        if (receivedoriginShift){
+            receivedoriginShift.textContent = `
+            X: ${origin_shift[0]},
+            Y: ${origin_shift[1]},
+            Z: ${origin_shift[2]},
+            Yaw: ${origin_shift[3]},
+            `
         }
         // document.getElementById('originData').textContent = `X: ${origin.ox}, Y: ${origin.oy}, Z: ${origin.oz}`;
         

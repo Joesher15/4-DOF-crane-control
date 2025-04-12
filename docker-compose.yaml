@@ -3,28 +3,34 @@ version: '3.8'
 services:
   backend:
     image: docker.io/library/crane_test
-    container_name: backend
-    working_dir: /app
-    volumes:
-      - type: bind
-        source: ./config
-        target: /app/config
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    working_dir: /app/
+    command: /app/venv/bin/python3 crane_control/crane_control.py
     ports:
       - "8765:8765"
-    command: /app/venv/bin/python3 /app/crane_control/crane_control.py
     network_mode: host
     ipc: host
 
-    # command: ls
-    # depends_on:
-    #   - frontend
+  http-server:
+    image: docker.io/library/crane_test
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    working_dir: /app/config
+    command: http-server -c-1
+    ports:
+      - "8080:8080"
+    network_mode: host
+    ipc: host
 
-  # frontend:
-  #   image: node:14
-  #   container_name: frontend
-  #   working_dir: /app/frontend
-  #   volumes:
-  #     - ./frontend:/app/frontend
-  #   ports:
-  #     - "3000:3000"
-  #   command: npm start
+  proxy-server:
+    image: docker.io/library/crane_test
+    command: node /app/proxy-server/server.js
+    ports:
+      - "3000:3000"
+    depends_on:
+      - http-server
+    network_mode: host
+    ipc: host
