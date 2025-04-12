@@ -6,8 +6,16 @@ import xml.etree.ElementTree as ET
 import asyncio
 import websockets
 import json
+import re
 
 np.set_printoptions(precision=3, suppress=True)
+
+def separate_numbers(input_string):
+    numbers = re.findall(r'-?\d+\.\d+|-?\d+', input_string)
+    return [float(num) for num in numbers]
+
+def wrap_angle_radians(angle):
+    return (angle + np.pi) % (2 * np.pi) - np.pi
 
 class Joint:
     def __init__(self, joint_type, initial_position, velocity_limit):
@@ -21,7 +29,12 @@ class Joint:
 
     def update_position(self, dt):
         if self.target is not None:
-            if self.joint_type in ['revolute', 'prismatic']:
+            if self.joint_type == 'revolute':
+                error = wrap_angle_radians(self.target - self.position)
+                # print(error)
+                velocity = np.clip(error / dt, -self.velocity_limit, self.velocity_limit)
+                self.position += velocity * dt
+            elif self.joint_type == 'prismatic':
                 error = self.target - self.position
                 # print(error)
                 velocity = np.clip(error / dt, -self.velocity_limit, self.velocity_limit)
@@ -87,8 +100,9 @@ class Crane:
 class CraneControl():
     def __init__(self):
         # Read DH parameters from URDF
-        self.urdf_file = "config/awesome_crane.urdf"
-        self.crane = Chain.from_urdf_file(self.urdf_file, active_links_mask=[False, True, True, True, True, False], last_link_vector=np.array([0.0, 0.0, 0.0]))
+        self.urdf_file = "config/public/awesome_crane1.urdf"
+        z_offset = self.load_last_link()
+        self.crane = Chain.from_urdf_file(self.urdf_file, active_links_mask=[False, True, True, True, True, False], last_link_vector=np.array([0.0, 0.0, z_offset]))
         self.joint_velocity_limits = self.load_velocity_limits()
 
         self.current_ee_position = None
@@ -102,6 +116,22 @@ class CraneControl():
 
 
         # self.set_origin_target(np.array([0, 0, 0, 0]))
+        
+    def load_last_link(self):
+        # Parse the XML data
+        robot = ET.parse(self.urdf_file)
+        root = robot.getroot()
+        # Find all joints and extract their velocity limits
+        velocity_limits = []
+        links = root.findall(".//link")
+        last_link = links[-1]
+        oxyz = last_link.find("visual").find("origin").get("xyz")
+        oxyz = separate_numbers(oxyz)
+        length = last_link.find("visual").find("geometry").find("cylinder").get("length")
+        length = separate_numbers(length)[0]
+        z_offset =  oxyz[2] - length / 2
+        print(z_offset)
+        return z_offset
 
     def load_velocity_limits(self):
         # Parse the XML data

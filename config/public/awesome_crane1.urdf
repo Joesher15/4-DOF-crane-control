@@ -18,7 +18,7 @@
     <joint name="swing_joint" type="revolute">
         <parent link="base_link"/>
         <child link="column"/>
-        <origin xyz="0 0 0.25" rpy="0 0 0"/> <!-- tranform from origin to first joint-->
+        <origin xyz="0 0 0" rpy="0 0 0"/> <!-- tranform from origin to first joint-->
         <axis xyz="0 0 1"/>
         <limit lower="-3.14" upper="3.14" effort="100" velocity="1.0"/>
     </joint>
@@ -42,7 +42,7 @@
     <joint name="lift_joint" type="prismatic">
         <parent link="column"/>
         <child link="upper_arm"/>
-        <origin xyz="0 0 0.125" rpy="0 0 0"/><!-- tranform from first joint to second joint-->
+        <origin xyz="0 0 0.375" rpy="0 0 0"/><!-- tranform from first joint to second joint-->
         <axis xyz="0 0 1"/>
         <limit lower="-0.1" upper="4.0" effort="100" velocity="0.05"/>
     </joint>
