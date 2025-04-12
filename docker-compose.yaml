@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  backend:
+    image: docker.io/library/crane_test
+    container_name: backend
+    working_dir: /app
+    volumes:
+      - type: bind
+        source: ./config
+        target: /app/config
+    ports:
+      - "8765:8765"
+    command: /app/venv/bin/python3 /app/crane_control/crane_control.py
+    network_mode: host
+    ipc: host
+
+    # command: ls
+    # depends_on:
+    #   - frontend
+
+  # frontend:
+  #   image: node:14
+  #   container_name: frontend
+  #   working_dir: /app/frontend
+  #   volumes:
+  #     - ./frontend:/app/frontend
+  #   ports:
+  #     - "3000:3000"
+  #   command: npm start
