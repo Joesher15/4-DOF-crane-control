@@ -46,7 +46,6 @@ RUN npm init -y
 RUN npm install express http-proxy-middleware
 COPY proxy-server/server.js /app/proxy-server/server.js
 
-
 # Copy the frontend files
 WORKDIR /app/crane-frontend
 RUN npm init -y
@@ -58,9 +57,5 @@ COPY crane-frontend/src/index.ts /app/crane-frontend/src/index.ts
 RUN npx webpack
 
 COPY config/public/* /app/config/public
-
-
-# # Install frontend dependencies
-# RUN cd /app/crane-frontend && npm install
 
 
