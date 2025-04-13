@@ -22,8 +22,6 @@ const controls = new OrbitControls(camera, renderer.domElement);
 scene.background = new THREE.Color(0x008000);
 const ambientLight = new THREE.AmbientLight(0xffffff);
 scene.add(ambientLight);
-// const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-// scene.add(directionalLight);
 
 
 // Create the geometry for the floor plane
@@ -38,9 +36,6 @@ const material = new THREE.MeshBasicMaterial({ map: floorTexture, side: THREE.Do
 
 // Create the mesh from the geometry and material
 const floor = new THREE.Mesh(geometry, material);
-
-// Rotate the floor to lie flat
-// floor.rotation.x = Math.PI / 2;
 
 // Add the floor to the scene
 scene.add(floor);
@@ -141,9 +136,6 @@ socket.onmessage = (event) => {
             Yaw: ${origin_shift[3]},
             `
         }
-        // document.getElementById('originData').textContent = `X: ${origin.ox}, Y: ${origin.oy}, Z: ${origin.oz}`;
-        
-        // const angles: number[] = msg["joint_positions"];
 
         // Update crane joint angles based on received data
         var i = 0;

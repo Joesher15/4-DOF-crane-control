@@ -66,10 +66,6 @@ class Crane:
     def crane_moving_status(self):
         reached = True
         for joint in self.joints:
-            # print(joint.joint_type)
-            # print(joint.position)
-            # print(joint.target)
-            # print(joint.velocity_limit)
             if(joint.target is not None):
                 if joint.joint_type == 'origin_translate':
                     reached = reached and np.all(joint.target == joint.position)
@@ -83,7 +79,6 @@ class Crane:
             return "Robot moving"
 
     def update(self, dt):
-        # print("Inside Update position")
         for joint in self.joints:
             joint.update_position(dt)
 
@@ -110,16 +105,11 @@ class CraneControl():
 
         self.crane_model = Crane()
         self.initialise_crane()
-
-
-        # self.set_origin_target(np.array([0, 0, 0, 0]))
         
     def load_last_link(self):
         # Parse the XML data
         robot = ET.parse(self.urdf_file)
         root = robot.getroot()
-        # Find all joints and extract their velocity limits
-        velocity_limits = []
         links = root.findall(".//link")
         last_link = links[-1]
         oxyz = last_link.find("visual").find("origin").get("xyz")
@@ -127,14 +117,12 @@ class CraneControl():
         length = last_link.find("visual").find("geometry").find("cylinder").get("length")
         length = separate_numbers(length)[0]
         z_offset =  oxyz[2] - length / 2
-        print(z_offset)
         return z_offset
 
     def load_velocity_limits(self):
         # Parse the XML data
         robot = ET.parse(self.urdf_file)
         root = robot.getroot()
-        # TODO : aDD ORIGIN LIMIT
         # Find all joints and extract their velocity limits
         velocity_limits = []
         for joint in root.findall(".//joint"):
@@ -149,18 +137,11 @@ class CraneControl():
         return [0, joint_angles[0], joint_angles[1], joint_angles[2], joint_angles[3], 0]
     
     def forward_kinematics(self, joint_angles):
-        # Compute forward kinematics
-        # print("Forward Kinematics")
-        # print(f"Joint angles: {joint_angles}")
-
         F = self.crane.forward_kinematics(joint_angles)
-
-        # print(f"End-Effector position: {F[:3, 3]}")
         ee_pose = F[:3, 3]
         rot_matrix = F[:3, :3]
         r = Rotation.from_matrix(rot_matrix)
         ee_orientation = r.as_euler('xyz')
-        # print(f"End-Effector orientation: {ee_orientation}")
 
         return ee_pose, ee_orientation
     
@@ -168,9 +149,9 @@ class CraneControl():
         # set initial values
         origin_translate = np.array([0.0, 0.0, 0.0])
         origin_rotation = 0.0
-        start_joint_position = [0.0, 1.0, 0.0, 0.0]
-        origin_translation_vel_limit = 0.04
-        origin_rotational_vel_limit = 1.0
+        start_joint_position = [0.0, 1.0, 0.0, 0.0] # TODO: Remove hardcoding and expose to config
+        origin_translation_vel_limit = 0. # TODO: Remove hardcoding and expose to config
+        origin_rotational_vel_limit = 1.0 # TODO: Remove hardcoding and expose to config
 
         # update state variables with initial values
         # state pose of crane
@@ -193,22 +174,17 @@ class CraneControl():
         self.current_joint_positions.insert(1, self.origin_translate)
         joints.insert(0, ['revolute', self.origin_rotation, origin_rotational_vel_limit])
         joints.insert(0, ['origin_translate', self.origin_translate, origin_translation_vel_limit])
-        print(joints)
         self.crane_model.initialise_crane_model(joints)
 
         self.crane_model.set_target(self.current_joint_positions[1:-1])
     
     def set_origin_target(self, array: np.ndarray):
-        # incoming_origin_shift_position = array[:3]
-        # incoming_origin_shift_yaw = np.deg2rad(np.array([0.0, 0.0, array[3]]))
-
         current_joint_targets = self.crane_model.get_targets()
         self.current_target_origin_translate = array[:3]
         self.current_target_origin_rotation = array[3]
 
         current_joint_targets[0] = self.current_target_origin_translate
         current_joint_targets[1] = self.current_target_origin_rotation
-
 
         self.crane_model.set_target(current_joint_targets)
 
@@ -219,7 +195,6 @@ class CraneControl():
         r = Rotation.from_euler("xyz", incoming_origin_shift_yaw)
         rot_mat = r.as_matrix()
         origin_shift_transformation[:3, :3] = rot_mat
-        # print(origin_shift_transformation)
 
         # print("==================")
         # print("world->base_link transform after transformation")
@@ -238,10 +213,7 @@ class CraneControl():
         # print(f"translation: {self.crane.links[1].origin_translation}")
         # print(f"orientation: {np.rad2deg(self.crane.links[1].origin_orientation)}")
 
-        # self.current_origin_translation = self.crane.links[1].origin_translation
-        # self.current_origin_rotation = [0.0, 0.0, np.deg2rad(self.origin_rotation)]
-
-        if(np.linalg.norm(self.origin_translate) > 0.05):
+        if(np.linalg.norm(self.origin_translate) > 0.05): # TODO: Remove hardcoding and expose to config
             self.goto_point(self.current_target_ee_pos)
 
     def add_origin_joints(self, array):
@@ -251,27 +223,13 @@ class CraneControl():
     
     def goto_point(self, target_ee_pos: np.ndarray):
 
-        # Compute inverse kinematics
-        # print("==================")
-        # print("Goto point")
-
-        # print(f"Start End-Effector position: {self.current_ee_position}")
-        # print(f"Start End-Effector orientation: {self.current_ee_orientation}")
-
-        # print(f"Target End-effector position: {target_ee_pos}")
-
         initial_joint_positions = self.crane.inverse_kinematics(target_position=self.current_ee_position, target_orientation=self.current_ee_orientation)
         final_joint_positions = self.crane.inverse_kinematics(target_position=target_ee_pos)
 
         resulting_ee_pos, resulting_ee_orientation = self.forward_kinematics(final_joint_positions)
 
-        # print(f"initial joint positions: {initial_joint_positions}")
-        # print(f"final joint positions: {final_joint_positions}")
-        # print(f"final End-Effector position: {resulting_ee_pos}")
-        # print(f"Error in End-Effector position: {resulting_ee_pos - target_ee_pos}")
-
         ee_position_error = resulting_ee_pos - target_ee_pos
-        if (np.abs(np.linalg.norm(ee_position_error)) > 0.1):
+        if (np.abs(np.linalg.norm(ee_position_error)) > 0.1): # TODO: Remove hardcoding and expose to config
             return "Not reachable"
         else:
             origin_targets = [self.current_target_origin_translate, self.current_target_origin_rotation]
@@ -281,7 +239,6 @@ class CraneControl():
         
     def set_joint_angles(self, joint_angles):
             joint_angles = self.add_origin_joints(joint_angles)
-            # print(joint_angles)
             self.crane_model.set_target(joint_angles)
             return "Going to Pose"
         
@@ -292,10 +249,6 @@ class CraneControl():
             self.origin_rotation = updated_joint_angles[1]
             self.current_joint_positions = self.augment_joint_angles(updated_joint_angles[2:])
             self.current_ee_position, self.current_ee_orientation = self.forward_kinematics(self.current_joint_positions)
-
-            # print(self.current_joint_positions)
-            # print(self.current_ee_position)
-            # print(self.crane_model.crane_moving_status())
 
             data = {'command': 'update', 'joint_positions': updated_joint_angles[2:],
                     'ee_position': [self.current_ee_position[0], self.current_ee_position[1], 
@@ -310,8 +263,8 @@ class CraneControl():
 
 async def main():
 
-    control_update_interval = 0.1 # s
-    publish_interval = 0.2 # s
+    control_update_interval = 0.1 # s # TODO: Remove hardcoding and expose to config
+    publish_interval = 0.2 # s # TODO: Remove hardcoding and expose to config
 
     # Initialize crane model and set targets as needed
     crane_control = CraneControl()
@@ -345,10 +298,8 @@ async def main():
 
     async def update_crane():
         while True:
-            # print("Updating Crane")
             crane_control.shift_origin()
             crane_control.crane_model.update(control_update_interval)
-            # print("Finsihed Update")
             await asyncio.sleep(control_update_interval)
 
     print("Attempting to listen on port 8765")
