@@ -96,6 +96,7 @@ class CraneControl():
         z_offset = self.load_last_link()
         self.crane = Chain.from_urdf_file(self.urdf_file, active_links_mask=[False, True, True, True, True, False], last_link_vector=np.array([0.0, 0.0, z_offset]))
         self.joint_velocity_limits = self.load_velocity_limits()
+        self.joint_position_limits = self.load_joint_position_limits()
 
         self.current_ee_position = None
         self.current_ee_orientation = None 
@@ -133,6 +134,16 @@ class CraneControl():
         print(f"Loaded Velocity limits: {velocity_limits}")
         return velocity_limits
 
+    def load_joint_position_limits(self):
+        # Find all joints and extract their velocity limits
+        joint_limits = []
+        for i, joint in enumerate(self.crane.links):
+            if i == 0 or i == (len(self.crane.links) - 1): # skip reading the first and last joint added by the urdf reader
+                continue
+            joint_limits.append(joint.bounds)
+        print(joint_limits)
+        return joint_limits
+
     def augment_joint_angles(self, joint_angles: list):
         return [0, joint_angles[0], joint_angles[1], joint_angles[2], joint_angles[3], 0]
     
@@ -150,7 +161,7 @@ class CraneControl():
         origin_translate = np.array([0.0, 0.0, 0.0])
         origin_rotation = 0.0
         start_joint_position = [0.0, 1.0, 0.0, 0.0] # TODO: Remove hardcoding and expose to config
-        origin_translation_vel_limit = 0. # TODO: Remove hardcoding and expose to config
+        origin_translation_vel_limit = 0.1 # TODO: Remove hardcoding and expose to config
         origin_rotational_vel_limit = 1.0 # TODO: Remove hardcoding and expose to config
 
         # update state variables with initial values
@@ -238,6 +249,9 @@ class CraneControl():
             return "Going to Pose"
         
     def set_joint_angles(self, joint_angles):
+            for i, joint_position in enumerate(joint_angles):
+                if joint_position < self.joint_position_limits[i][0] or joint_position > self.joint_position_limits[i][1]:
+                    return f"Out of bounds for {i+1}th joint. Range: [{self.joint_position_limits[i][0]}, {self.joint_position_limits[i][1]}]"
             joint_angles = self.add_origin_joints(joint_angles)
             self.crane_model.set_target(joint_angles)
             return "Going to Pose"
