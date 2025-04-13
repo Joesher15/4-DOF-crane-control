@@ -53,4 +53,5 @@ I tackled the problem in this order:
     - the control system struggles to keep the ee stationary. In some cases, it results in instability if the velocity gradient is too high. Ultimately, if out of the range of the robot, the ee is no longer tracked to the same position.
 - How to deal with a bad origin sensor?
     - Use simple filters, such as a low-pass filter for noisy/jittery measurements
-    - use adaptive and model-aware filters which takes in to account a movement model of the ground vehicle/ determine the frquency of the noise using feedback
+    - use adaptive filters which determine the frquency of the noise using feedback
+    - use predictive models of control to control the predicted process params, instead of the laggy sensor measurements
