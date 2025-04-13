@@ -43,9 +43,11 @@ I tackled the problem in this order:
 ## Limitations
 - code quality: very much a first-try prototype code.
 - decided to skip the gripper open/close control and visualising as it did not add to the control problem but would've only been for visuals.
-- due to time-constraints, decided to only limit velocity (not acceleration) in the project 
+- due to time-constraints, decided to only limit velocity (not acceleration) in the project
+    - besides the simple solution of coding it myself, I would look into using the 'ruckig' library for motion profiling.
 - due to time-constraints, in two places the proper reading of the URDF file was circumvented. It might result in unexpected behavior if more links/joints were added (especially in the definintion of the end-effector link)
-- discovered too late that I had not respected the limits on joint positions (as defined in the URDF file) in the API behavior to directly move the joints from the UI. Results in faulty behavior. Limits are respected however in all forward and inverse kinematic calculations.
+- an implementation error resulting in forward kinematic command from UI only working before a origin shift command is issued. Currently once a origin shift command is issued, the control system is always trying to hold the ee position, resulting in forward kinematics request being rejected.
+    -   Would solve by adding a sticky button to the UI if EE position is to be held while origin is shifting.
 - some constant are not well defined in a single place, such as the tolerance used in the inverse kinematics calculations (5cms).
 
 ## Answers
